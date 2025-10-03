@@ -1,26 +1,40 @@
 name: Build ovpn-admin i386
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}   # Actions > Run workflow butonu için
 
 jobs:
-  build:
+  build-i386:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
 
-      - name: Build for i386
+      - name: Go env & deps
         run: |
-          GOOS=linux GOARCH=386 go build -o ovpn-admin-i386
+          go version
+          go env
+          go mod download
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
+      # Not: ovpn-admin repo kökünde go mod varsa ./ ile build yeterli.
+      # Gerekirse proje README’sindeki ana paket path’ini kullan.
+      - name: Build linux/386
+        run: |
+          mkdir -p build
+          CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -ldflags="-s -w" -o build/ovpn-admin-i386 ./ 
+
+      - name: Show build output
+        run: ls -lah build && file build/ovpn-admin-i386 || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ovpn-admin-i386
-          path: ovpn-admin-i386
+          path: build/ovpn-admin-i386
+          if-no-files-found: error
+          retention-days: 7
